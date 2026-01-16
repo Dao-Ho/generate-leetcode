@@ -1,6 +1,8 @@
 package handler
 
-import "strings"
+import (
+	"strings"
+)
 
 type Command int
 
@@ -9,6 +11,11 @@ const (
 	CommandRandom
 	CommandHelp
 )
+
+type ParsedCommand struct {
+	Command    Command
+	Difficulty string
+}
 
 var commandStrings = map[string]Command{
 	"random": CommandRandom,
@@ -20,16 +27,37 @@ var commandNames = map[Command]string{
 	CommandHelp:   "help",
 }
 
-func ParseCommand(text string) Command {
+var validDifficulties = map[string]string{
+	"--easy":   "Easy",
+	"--medium": "Medium",
+	"--hard":   "Hard",
+}
+
+func ParseCommand(text string) ParsedCommand {
 	parts := strings.Fields(text)
-	if len(parts) < 2 {
-		return CommandUnknown
+	result := ParsedCommand{Command: CommandUnknown}
+
+	for _, part := range parts {
+		lower := strings.ToLower(part)
+
+		// Skip bot mentions
+		if strings.HasPrefix(part, "<@") && strings.HasSuffix(part, ">") {
+			continue
+		}
+
+		// Check if it's a command
+		if cmd, ok := commandStrings[lower]; ok {
+			result.Command = cmd
+			continue
+		}
+
+		// Check if it's a difficulty
+		if diff, ok := validDifficulties[lower]; ok {
+			result.Difficulty = diff
+		}
 	}
-	cmd, ok := commandStrings[strings.ToLower(parts[1])]
-	if !ok {
-		return CommandUnknown
-	}
-	return cmd
+
+	return result
 }
 
 func (c Command) String() string {

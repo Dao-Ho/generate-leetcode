@@ -63,12 +63,12 @@ func (h *SlackHandler) handleAppMention(event *slackevents.AppMentionEvent) {
 		"user", event.User,
 		"channel", event.Channel,
 		"text", event.Text,
-		"command", cmd.String(),
+		"command", cmd.Command.String(),
 	)
 
-	switch cmd {
+	switch cmd.Command {
 	case CommandRandom:
-		link, err := h.linkService.GetLink(cmd.String())
+		link, err := h.linkService.GetLink(cmd.Command.String(), cmd.Difficulty)
 		if err != nil {
 			slog.Error("failed to get link", "error", err)
 			return

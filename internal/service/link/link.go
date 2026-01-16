@@ -19,10 +19,10 @@ func NewLinkService() *LinkService {
 	}
 }
 
-func (s *LinkService) GetLink(command string) (string, error) {
+func (s *LinkService) GetLink(command string, difficulty string) (string, error) {
 	switch command {
 	case "random":
-		return s.getRandomLeetcode()
+		return s.getRandomLeetcode(difficulty)
 	default:
 		return "", fmt.Errorf("unknown command: %s", command)
 	}
@@ -45,7 +45,7 @@ type problemsetResponse struct {
 	} `json:"data"`
 }
 
-func (s *LinkService) getRandomLeetcode() (string, error) {
+func (s *LinkService) getRandomLeetcode(difficulty string) (string, error) {
 	query := graphQLRequest{
 		Query: `query problemsetQuestionList {
 			problemsetQuestionList: questionList(
@@ -88,29 +88,33 @@ func (s *LinkService) getRandomLeetcode() (string, error) {
 		return "", fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	// Filter free questions only
-	var freeQuestions []struct {
+	// Filter questions
+	var filtered []struct {
 		Title      string
 		TitleSlug  string
 		Difficulty string
 	}
 
 	for _, q := range data.Data.ProblemsetQuestionList.Questions {
-		if !q.IsPaidOnly {
-			freeQuestions = append(freeQuestions, struct {
-				Title      string
-				TitleSlug  string
-				Difficulty string
-			}{q.Title, q.TitleSlug, q.Difficulty})
+		if q.IsPaidOnly {
+			continue
 		}
+		// Filter by difficulty if specified
+		if difficulty != "" && q.Difficulty != difficulty {
+			continue
+		}
+		filtered = append(filtered, struct {
+			Title      string
+			TitleSlug  string
+			Difficulty string
+		}{q.Title, q.TitleSlug, q.Difficulty})
 	}
 
-	if len(freeQuestions) == 0 {
-		return "", fmt.Errorf("no free questions found")
+	if len(filtered) == 0 {
+		return "", fmt.Errorf("no questions found")
 	}
 
-	// Pick random
-	question := freeQuestions[rand.Intn(len(freeQuestions))]
+	question := filtered[rand.Intn(len(filtered))]
 
 	return fmt.Sprintf("*%s* (%s)\nhttps://leetcode.com/problems/%s/",
 		question.Title,
