@@ -27,11 +27,20 @@ func (h *SlackHandler) HandleEvents(socket *socketmode.Client) {
 		case socketmode.EventTypeEventsAPI:
 			eventsAPIEvent, ok := evt.Data.(slackevents.EventsAPIEvent)
 			if !ok {
+				slog.Warn("failed to cast event data")
 				continue
 			}
 			socket.Ack(*evt.Request)
-
 			h.handleEventsAPI(eventsAPIEvent)
+
+		case socketmode.EventTypeConnectionError:
+			slog.Error("connection error", "data", evt.Data)
+
+		case socketmode.EventTypeConnecting:
+			slog.Info("connecting to Slack...")
+
+		case socketmode.EventTypeConnected:
+			slog.Info("connected to Slack")
 		}
 	}
 }
@@ -47,6 +56,12 @@ func (h *SlackHandler) handleEventsAPI(event slackevents.EventsAPIEvent) {
 }
 
 func (h *SlackHandler) handleAppMention(event *slackevents.AppMentionEvent) {
+	slog.Debug("received app mention",
+		"user", event.User,
+		"channel", event.Channel,
+		"text", event.Text,
+	)
+
 	link, err := h.linkService.GetLink(event.Text)
 	if err != nil {
 		slog.Error("failed to get link", "error", err)
@@ -60,5 +75,11 @@ func (h *SlackHandler) handleAppMention(event *slackevents.AppMentionEvent) {
 	)
 	if err != nil {
 		slog.Error("failed to post message", "error", err)
+		return
 	}
+
+	slog.Info("sent link response",
+		"channel", event.Channel,
+		"user", event.User,
+	)
 }
