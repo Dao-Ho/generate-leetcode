@@ -76,8 +76,7 @@ func (h *SlackHandler) handleAppMention(event *slackevents.AppMentionEvent) {
 		h.reply(event, link)
 
 	case CommandHelp:
-		helpText := "Supported commands: `" + strings.Join(ListCommands(), "`, `") + "`"
-		h.reply(event, helpText)
+		h.reply(event, "Supported commands: `"+strings.Join(ListCommands(), "`, `")+"`")
 
 	case CommandUnknown:
 		h.reply(event, "Unknown command. Try `help` for available commands.")
