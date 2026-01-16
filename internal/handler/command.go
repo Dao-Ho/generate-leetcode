@@ -28,9 +28,9 @@ var commandNames = map[Command]string{
 }
 
 var validDifficulties = map[string]string{
-	"--easy":  "EASY",
-	"-medium": "MEDIUM",
-	"-hard":   "HARD",
+	"--easy":   "Easy",
+	"--medium": "Medium",
+	"--hard":   "Hard",
 }
 
 func ParseCommand(text string) ParsedCommand {
