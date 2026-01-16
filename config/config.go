@@ -2,6 +2,6 @@ package config
 
 type Config struct {
 	Application Application
-	DB          DB
-	Slack       SlackConfig
+	// DB          DB
+	Slack SlackConfig
 }
