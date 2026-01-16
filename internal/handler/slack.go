@@ -3,6 +3,7 @@ package handler
 import (
 	"generate-leetcode/internal/service/link"
 	"log/slog"
+	"strings"
 
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -56,30 +57,40 @@ func (h *SlackHandler) handleEventsAPI(event slackevents.EventsAPIEvent) {
 }
 
 func (h *SlackHandler) handleAppMention(event *slackevents.AppMentionEvent) {
+	cmd := ParseCommand(event.Text)
+
 	slog.Debug("received app mention",
 		"user", event.User,
 		"channel", event.Channel,
 		"text", event.Text,
+		"command", cmd.String(),
 	)
 
-	link, err := h.linkService.GetLink(event.Text)
-	if err != nil {
-		slog.Error("failed to get link", "error", err)
-		return
-	}
+	switch cmd {
+	case CommandRandom:
+		link, err := h.linkService.GetLink(cmd.String())
+		if err != nil {
+			slog.Error("failed to get link", "error", err)
+			return
+		}
+		h.reply(event, link)
 
-	_, _, err = h.client.PostMessage(
+	case CommandHelp:
+		helpText := "Supported commands: `" + strings.Join(ListCommands(), "`, `") + "`"
+		h.reply(event, helpText)
+
+	case CommandUnknown:
+		h.reply(event, "Unknown command. Try `help` for available commands.")
+	}
+}
+
+func (h *SlackHandler) reply(event *slackevents.AppMentionEvent, text string) {
+	_, _, err := h.client.PostMessage(
 		event.Channel,
-		slack.MsgOptionText(link, false),
+		slack.MsgOptionText(text, false),
 		slack.MsgOptionTS(event.TimeStamp),
 	)
 	if err != nil {
 		slog.Error("failed to post message", "error", err)
-		return
 	}
-
-	slog.Info("sent link response",
-		"channel", event.Channel,
-		"user", event.User,
-	)
 }
